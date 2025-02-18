@@ -3,21 +3,22 @@
 
 #include "vec.h"
 
-typedef struct rodcutsolver {
-    Vec length_prices;  // Keypair = {length, price of length}
-    Vec cut_list;       // Keypair = {length, number of pieces}
-    int result_profit;
+typedef struct rodcutresult {
+    Vec cut_list;  // Keypair = {length, number of pieces}
+    int total_profit;
     size_t remainder;
-} *RodCutSolver;
+} *RodCutResult;
 
-RodCutSolver createRodCutSolver(const Vec new_prices);
+RodCutResult createRodCutResult(const Vec cuts, int profit, size_t remainder);
 
-void freeRodCutSolver(RodCutSolver solver);
+void freeRodCutResult(RodCutResult result);
 
-void setLengthPrices(RodCutSolver solver, const Vec v);
+Vec createCutList(size_t rod_length, const size_t cuts[]);
 
-void printOutput(const RodCutSolver solver, const int prices[]);
+size_t calculateRemainder(const Vec cuts, size_t rod_length);
 
-void solveRodCutting(RodCutSolver solver, size_t rod_length);
+RodCutResult solveRodCutting(const Vec length_prices, size_t rod_length);
+
+void printResult(const RodCutResult result, const Vec length_prices);
 
 #endif

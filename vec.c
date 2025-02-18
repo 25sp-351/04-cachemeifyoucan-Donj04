@@ -71,3 +71,12 @@ void* vec_get(Vec v, size_t index) {
     // cast to char* to do pointer arithmetic correctly
     return (char*)vec_items(v) + (index * v->element_size);
 }
+
+KeyPair* findPair(const Vec vector, size_t key) {
+    for (size_t ix = 0; ix < vec_length(vector); ix++) {
+        KeyPair* pair = vec_get(vector, ix);
+        if (pair->key == key)
+            return pair;
+    }
+    return NULL;
+}

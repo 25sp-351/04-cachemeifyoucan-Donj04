@@ -8,140 +8,184 @@
 
 #include "keypair.h"
 
-size_t MAX_LINE_LENGTH = 128;
+const size_t MAX_LINE_LENGTH       = 128;
+const size_t COMMAND_LINE_ARG_SIZE = 256;
+const size_t BUFFER_SIZE           = 64;
+
+int getInput(char* write_to) {
+    printf("Enter a rod length (EOF to exit): ");
+
+    if (fgets(write_to, BUFFER_SIZE, stdin) != NULL)
+        return INPUT_OK;
+
+    if (feof(stdin))
+        return USER_EXIT;
+
+    return READ_ERROR;
+}
+
+int validateArgs(int arg_count, char* args[]) {
+    if (arg_count != 2)
+        return ARG_COUNT_INVALID;
+
+    if (!isFileValid(args[1]))
+        return FILE_INVALID;
+
+    return ARGS_OK;
+}
+
+bool isLengthInRange(long length) {
+    return length > 0 && length < INT_MAX;
+}
+
+bool isFileValid(const char* filename) {
+    return access(filename, F_OK) == 0;
+}
+
+Vec extractFile(const char* filename) {
+    if (!isFileValid(filename))
+        return NULL;
+
+    FILE* file  = fopen(filename, "r");
+    Vec lengths = new_vec(sizeof(KeyPair));
+    char line[MAX_LINE_LENGTH];
+
+    while (fgets(line, MAX_LINE_LENGTH, file)) {
+        int read_state = writeLineToVec(line, lengths);
+        if (read_state != FILE_LINE_OK)
+            printErr(read_state, line, MAX_LINE_LENGTH);
+    }
+
+    fclose(file);
+    return lengths;
+}
+
+int writeLineToVec(const char* line, Vec add_to) {
+    if (isBlankLine(line, MAX_LINE_LENGTH))
+        return FILE_LINE_OK;
+
+    long read_length = 0;
+    int read_value   = 0;
+    char line_copy[MAX_LINE_LENGTH];
+    trimNewline(line, line_copy, MAX_LINE_LENGTH);
+
+    // Write input to length and value and check if successful for both
+    if (sscanf(line_copy, "%ld , %d", &read_length, &read_value) == 2) {
+        if (!isLengthInRange(read_length))
+            return FILE_LENGTH_OUT_OF_RANGE;
+
+        // Check for duplicate lengths
+        for (size_t ix = 0; ix < vec_length(add_to); ix++) {
+            KeyPair* pair_p = vec_get(add_to, ix);
+            if (pair_p->key == (size_t)read_length)
+                return FILE_LENGTH_DUPE;
+        }
+        KeyPair new_pair = createKeyPair(read_length, read_value);
+        vec_add(add_to, &new_pair);
+        return FILE_LINE_OK;
+    }
+    return FILE_INVALID_LINE;
+}
 
 bool isBlankLine(const char* line, size_t length) {
     for (size_t ix = 0; ix < length; ix++) {
         if (line[ix] == '\0' || line[ix] == '#')
             return true;
-        if (isspace(line[ix]))
-            continue;
-        return false;
+        if (!isspace(line[ix]))
+            return false;
     }
     return true;
 }
 
-void trimNewline(char* text) {
-    char* ptr        = text;
+int writeInputToInt(const char* input, long* write_to) {
+    if (sscanf(input, "%ld", write_to) != 1)
+        return INPUT_NOT_INT;
 
-    size_t max_loops = MAX_LINE_LENGTH;
-    while (*ptr != '\0' && max_loops > 0) {  // Move pointer to end of string
-        ptr++;
-        max_loops--;
+    if (!isLengthInRange(*write_to))
+        return INPUT_OUT_OF_RANGE;
+
+    return INPUT_OK;
+}
+
+void trimNewline(const char* text, char* write_to, size_t length) {
+    for (size_t ix = 0; ix < length; ix++) {
+        if (text[ix] == '\n' || text[ix] == '\0' || ix == length - 1) {
+            write_to[ix] = '\0';
+            break;
+        }
+        write_to[ix] = text[ix];
     }
-    if (*(ptr - 1) == '\n')
-        *(ptr - 1) = '\0';
 }
 
-long int writeLength(const char* input) {
-    long int length = 0;
-    sscanf(input, "%ld", &length);
-    return length;
-}
+void printErr(int err, const char* input, size_t input_length) {
+    char input_copy[input_length];
+    trimNewline(input, input_copy, input_length);
 
-bool validateLength(long int length) {
-    return length > 0 && length < INT_MAX;
-}
+    switch (err) {
+        case 0:  // ARGS_OK, FILE_LINE_OK, INPUT_OK
+            break;
 
-bool validateFile(const char* filename) {
-    return access(filename, F_OK) == 0;
-}
+        case ARG_COUNT_INVALID:
+            printf("Usage: ./rodcut /path/to/file\n");
+            break;
 
-bool validateInput(int arg_count, char* args[]) {
-    const bool has_4_args = arg_count == 4;
+        case FILE_INVALID:
+            printf("Error: File path '%s' is invalid or does not exist\n",
+                   input_copy);
+            break;
 
-    if (arg_count == 3 || has_4_args) {
-        const char* file_arg    = (has_4_args) ? args[3] : args[2];
-        const char* q_arg       = args[2];
-        const bool length_valid = validateLength(writeLength(args[1]));
-        const bool file_valid   = validateFile(file_arg);
-        const bool q_arg_valid  = strcmp(q_arg, "-q") == 0;
+        case FILE_NO_VALID_LINES:
+            printf("Error: No valid lengths found in '%s'\n", input_copy);
+            break;
 
-        if (!length_valid)
+        case FILE_LENGTH_OUT_OF_RANGE:
             printf(
-                "ERROR: \"%s\" is an invalid length input. "
-                "Rod length must be a 32-bit integer greater than 0.\n",
-                args[1]);
-        if (!file_valid)
-            printf("ERROR: \"%s\" is not a valid file path.\n", file_arg);
-        if (has_4_args && !q_arg_valid)
-            printf("ERROR: Unknown parameter \'%s\'\n", q_arg);
+                "Warning: length in '%s' is out of range. Ignoring line...\n",
+                input_copy);
+            break;
 
-        if (has_4_args)
-            return length_valid && file_valid && q_arg_valid;
-        else
-            return length_valid && file_valid;
-    }
-    printf(
-        "Usage: %s length [-q] /path/to/lengths.txt\n"
-        "length = integer > 0\n"
-        "-q = Disable prompt\n",
-        args[0]);
-    return false;
-}
+        case FILE_LENGTH_DUPE:
+            printf("Warning: length in '%s' is a duplicate. Ignoring line...\n",
+                   input_copy);
+            break;
 
-void readLine(char* line, Vec length_list, bool show_warnings) {
-    if (isBlankLine(line, MAX_LINE_LENGTH))
-        return;
+        case FILE_INVALID_LINE:
+            printf(
+                "Warning: line '%s' is invalid. Format should be <int>, <int>. "
+                "Ignoring line...\n",
+                input_copy);
+            break;
 
-    long int read_length = 0;
-    int read_value       = 0;
-    char* line_copy      = line;
-    trimNewline(line_copy);
+        case INPUT_NOT_INT:
+            printf("Error: '%s' could not be converted to an integer\n",
+                   input_copy);
+            break;
 
-    // Write input to length and value and check if successful for both
-    if (sscanf(line_copy, "%ld , %d", &read_length, &read_value) == 2) {
-        if (!validateLength(read_length)) {
-            if (show_warnings)
-                printf(
-                    "WARNING: length %ld should be greater than 0 and less "
-                    "than %d\n",
-                    read_length, INT_MAX);
-            return;
-        }
-        // Check for duplicate lengths
-        for (size_t ix = 0; ix < vec_length(length_list); ix++) {
-            KeyPair* pair_p = vec_get(length_list, ix);
-            if (pair_p->key == (size_t)read_length) {
-                if (show_warnings)
-                    printf("WARNING: %ld is a duplicate length\n", read_length);
-                return;
-            }
-        }
-        KeyPair new_pair = createKeyPair(read_length, read_value);
-        vec_add(length_list, &new_pair);
-        return;
-    }
-    if (show_warnings) {
-        printf(
-            "WARNING: line \"%s\" is invalid. Format should be "
-            "<int>, <int>\n",
-            line_copy);
+        case INPUT_OUT_OF_RANGE:
+            printf(
+                "Error: '%s' is out of range. Length should be positive and "
+                "fit "
+                "within a signed int (%d)\n",
+                input_copy, INT_MAX);
+            break;
+
+        case READ_ERROR:
+            printf("Error: Could not read rod length from user\n");
+            break;
+
+        default:
+            printf("Error: Received error code %d with input %s\n", err,
+                   input_copy);
     }
 }
 
-Vec extractFile(const char* filename) {
-    FILE* file  = fopen(filename, "r");
-    Vec lengths = new_vec(sizeof(KeyPair));
-
-    if (file != NULL) {
-        char line[MAX_LINE_LENGTH];
-
-        while (fgets(line, MAX_LINE_LENGTH, file))
-            readLine(line, lengths, true);
-    } else
-        printf("Error opening %s\n", filename);
-    fclose(file);
-    return lengths;
-}
-
-void processInput(const Vec prices, const char* input) {
-    long int length = writeLength(input);
-    if (validateLength(length)) {
-        RodCutSolver solver = createRodCutSolver(prices);
-        solveRodCutting(solver, (int)length);
-        freeRodCutSolver(solver);
-        return;
-    }
-    printf("Rod length must be a 32-bit integer greater than 0.\n");
-}
+// void processInput(const Vec prices, const char* input) {
+//     long length = getIntFromStr(input);
+//     if (isLengthInRange(length)) {
+//         RodCutSolver solver = createRodCutSolver(prices);
+//         solveRodCutting(solver, (int)length);
+//         freeRodCutSolver(solver);
+//         return;
+//     }
+//     printf("Rod length must be a 32-bit integer greater than 0.\n");
+// }

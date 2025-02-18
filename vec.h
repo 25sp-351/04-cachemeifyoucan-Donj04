@@ -3,6 +3,8 @@
 
 #include <stdlib.h>
 
+#include "keypair.h"
+
 typedef struct vec {
     void* base;
     size_t element_size;
@@ -25,5 +27,7 @@ void vec_add(Vec v, void* item);
 void* vec_items(Vec v);
 
 void* vec_get(Vec v, size_t index);
+
+KeyPair* findPair(const Vec vector, size_t key);
 
 #endif
