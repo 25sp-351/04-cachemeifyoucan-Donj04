@@ -15,8 +15,8 @@
 ** It does not support the provider function accessing the cache.
 */
 
-#define TEST_COUNT 1000
-#define MAX_TEST_NUMBER 100
+#define TEST_COUNT 200
+#define MAX_TEST_NUMBER 1000
 
 int rand_between(int min, int max);
 

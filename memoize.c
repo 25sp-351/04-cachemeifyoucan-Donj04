@@ -33,6 +33,13 @@ void initialize(void) {
 
 void cleanup(void) {
     fprintf(stderr, __FILE__ " cleanup()\n");
+    printf("free: ");
+    for (size_t ix = 0; ix < CACHE_SIZE; ix++)
+        if (cache[ix] != NULL) {
+            printf("%2zu ", ix);
+            free(cache[ix]);
+        }
+    printf("\n");
 }
 
 

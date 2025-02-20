@@ -1,5 +1,5 @@
-#ifndef FILE_READER_H
-#define FILE_READER_H
+#ifndef INPUTREADER_H
+#define INPUTREADER_H
 
 #include <stdbool.h>
 #include <stdlib.h>
@@ -23,20 +23,22 @@
 #define INPUT_OUT_OF_RANGE 8
 #define READ_ERROR 9
 
-#define USER_EXIT 10
+#define CACHE_LOAD_ERR 10
+
+#define USER_EXIT 11
 
 extern const size_t MAX_LINE_LENGTH;
 extern const size_t COMMAND_LINE_ARG_SIZE;
 extern const size_t BUFFER_SIZE;
 extern const size_t MAX_ROD_LENGTH;
 
+extern const int ARGC_NO_CACHE;
+extern const int ARGC_WITH_CACHE;
+
 // Returns error code if failed to read input, or sends exit code if EOF is read
 int getInput(char* write_to);
 
 void clearBuffer();
-
-// Returns error code if argument is invalid
-int validateArgs(int arg_count, char* args[]);
 
 // Returns true if 0 < length < INT_MAX
 bool isLengthInRange(long length);

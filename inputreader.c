@@ -12,6 +12,9 @@ const size_t COMMAND_LINE_ARG_SIZE = 256;
 const size_t BUFFER_SIZE           = 64;
 const size_t MAX_ROD_LENGTH        = 100000;
 
+const int ARGC_NO_CACHE            = 2;
+const int ARGC_WITH_CACHE          = 3;
+
 int getInput(char* write_to) {
     if (fgets(write_to, BUFFER_SIZE, stdin) != NULL)
         return INPUT_OK;
@@ -26,16 +29,6 @@ void clearBuffer() {
     char ch = ' ';
     while (ch != '\n' && ch != EOF)
         ch = getchar();
-}
-
-int validateArgs(int arg_count, char* args[]) {
-    if (arg_count != 2)
-        return ARG_COUNT_INVALID;
-
-    if (!isFileValid(args[1]))
-        return FILE_INVALID;
-
-    return ARGS_OK;
 }
 
 bool isLengthInRange(long length) {
@@ -86,7 +79,7 @@ int writeLineToVec(const char* line, Vec add_to) {
         }
         KeyPair new_pair = createKeyPair(read_length, read_value);
         vec_add(add_to, &new_pair);
-        // printf("Added length %2ld, value %2d\n", read_length, read_value);
+        printf("Added length %2ld, value %2d\n", read_length, read_value);
         return FILE_LINE_OK;
     }
     return FILE_INVALID_LINE;
@@ -131,7 +124,8 @@ void printErr(int err, const char* input, size_t input_length) {
             break;
 
         case ARG_COUNT_INVALID:
-            fprintf(stderr, "Usage: %s /path/to/file\n", input_copy);
+            fprintf(stderr, "Usage: %s /path/to/lengths_file [cache.so]\n",
+                    input_copy);
             break;
 
         case FILE_INVALID:
@@ -182,6 +176,10 @@ void printErr(int err, const char* input, size_t input_length) {
 
         case READ_ERROR:
             fprintf(stderr, "Error: Could not read rod length from user\n");
+            break;
+
+        case CACHE_LOAD_ERR:
+            fprintf(stderr, "Error: Failed to load cache module '%s'\n", input_copy);
             break;
 
         default:
