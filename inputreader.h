@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#include "rodcutsolver.h"
 #include "vec.h"
 
 #define ARGS_OK 0

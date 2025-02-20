@@ -2,9 +2,11 @@
 .jj
 .env
 *.o
+*.so
 .ob
 .exe
 a.out
 main
+testcache
 node_modules/
 .vscode/

@@ -1,27 +1,38 @@
-SRCS = $(TARGET).c inputreader.c keypair.c rodcutsolver.c vec.c
-HDRS = inputreader.h keypair.h rodcutsolver.h vec.h
+MAIN = main
+TESTER = testcache
 
-TARGET = main
-
-OBJS = $(SRCS:.c=.o)
+OBJS = inputreader.o keypair.o rodcutsolver.o vec.o cache.o
+LIBS = libmemoize.so
 
 CC = gcc
-CFLAGS = -g -Wall -Wextra -Werror
+CFLAGS = -g -Wall -Wextra
 
-all: $(TARGET)
+all: clean build
 
-$(TARGET): $(OBJS)
-	$(CC) $(CFLAGS) -o $@ $^
+build: $(MAIN) $(TESTER) $(LIBS)
 
-rodcut.o: rodcut.c inputreader.h keypair.h rodcutsolver.h vec.h
+lib%.so: %.c cache.h
+	$(CC) -shared -fPIC $(CFLAGS) -o $@ $<
 
-inputreader.o: inputreader.c inputreader.h
+$(MAIN): $(MAIN).o $(OBJS) $(LIBS)
+	$(CC) -o $@ $(CFLAGS) $(MAIN).o $(OBJS) -lbsd
+
+$(TESTER): $(TESTER).o $(OBJS) $(LIBS)
+	$(CC) -o $@ $(CFLAGS) $(TESTER).o $(OBJS) -lbsd
+
+$(MAIN).o: inputreader.h rodcutsolver.h cache.h
+
+$(TESTER).o: cache.h rodcutsolver.h vec.h
+
+cache.o: cache.c cache.h
+
+inputreader.o: inputreader.c inputreader.h keypair.h vec.h
 
 keypair.o: keypair.c keypair.h
 
-rodcutsolver.o: rodcutsolver.c rodcutsolver.h
+rodcutsolver.o: rodcutsolver.c rodcutsolver.h keypair.h vec.h
 
-vec.o: vec.c vec.h
+vec.o: vec.c vec.h keypair.h
 
 clean:
-	rm -f $(TARGET) $(OBJS)
+	rm -f $(MAIN) $(TESTER) $(MAIN).o $(TESTER).o $(OBJS) $(LIBS)
