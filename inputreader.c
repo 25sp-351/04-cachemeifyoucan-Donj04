@@ -1,7 +1,6 @@
 #include "inputreader.h"
 
 #include <ctype.h>
-#include <limits.h>
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
@@ -11,10 +10,9 @@
 const size_t MAX_LINE_LENGTH       = 128;
 const size_t COMMAND_LINE_ARG_SIZE = 256;
 const size_t BUFFER_SIZE           = 64;
+const size_t MAX_ROD_LENGTH        = 100000;
 
 int getInput(char* write_to) {
-    printf("Enter a rod length (EOF to exit): ");
-
     if (fgets(write_to, BUFFER_SIZE, stdin) != NULL)
         return INPUT_OK;
 
@@ -22,6 +20,12 @@ int getInput(char* write_to) {
         return USER_EXIT;
 
     return READ_ERROR;
+}
+
+void clearBuffer() {
+    char ch = ' ';
+    while (ch != '\n' && ch != EOF)
+        ch = getchar();
 }
 
 int validateArgs(int arg_count, char* args[]) {
@@ -35,7 +39,7 @@ int validateArgs(int arg_count, char* args[]) {
 }
 
 bool isLengthInRange(long length) {
-    return length > 0 && length < INT_MAX;
+    return length > 0 && length <= (long)MAX_ROD_LENGTH;
 }
 
 bool isFileValid(const char* filename) {
@@ -82,6 +86,7 @@ int writeLineToVec(const char* line, Vec add_to) {
         }
         KeyPair new_pair = createKeyPair(read_length, read_value);
         vec_add(add_to, &new_pair);
+        // printf("Added length %2ld, value %2d\n", read_length, read_value);
         return FILE_LINE_OK;
     }
     return FILE_INVALID_LINE;
@@ -126,66 +131,61 @@ void printErr(int err, const char* input, size_t input_length) {
             break;
 
         case ARG_COUNT_INVALID:
-            printf("Usage: ./rodcut /path/to/file\n");
+            fprintf(stderr, "Usage: %s /path/to/file\n", input_copy);
             break;
 
         case FILE_INVALID:
-            printf("Error: File path '%s' is invalid or does not exist\n",
-                   input_copy);
+            fprintf(stderr,
+                    "Error: File path '%s' is invalid or does not exist\n",
+                    input_copy);
             break;
 
         case FILE_NO_VALID_LINES:
-            printf("Error: No valid lengths found in '%s'\n", input_copy);
+            fprintf(stderr, "Error: No valid lengths found in '%s'\n",
+                    input_copy);
             break;
 
         case FILE_LENGTH_OUT_OF_RANGE:
-            printf(
+            fprintf(
+                stderr,
                 "Warning: length in '%s' is out of range. Ignoring line...\n",
                 input_copy);
             break;
 
         case FILE_LENGTH_DUPE:
-            printf("Warning: length in '%s' is a duplicate. Ignoring line...\n",
-                   input_copy);
+            fprintf(
+                stderr,
+                "Warning: length in '%s' is a duplicate. Ignoring line...\n",
+                input_copy);
             break;
 
         case FILE_INVALID_LINE:
-            printf(
+            fprintf(
+                stderr,
                 "Warning: line '%s' is invalid. Format should be <int>, <int>. "
                 "Ignoring line...\n",
                 input_copy);
             break;
 
         case INPUT_NOT_INT:
-            printf("Error: '%s' could not be converted to an integer\n",
-                   input_copy);
+            fprintf(stderr,
+                    "Error: '%s' could not be converted to an integer\n",
+                    input_copy);
             break;
 
         case INPUT_OUT_OF_RANGE:
-            printf(
-                "Error: '%s' is out of range. Length should be positive and "
-                "fit "
-                "within a signed int (%d)\n",
-                input_copy, INT_MAX);
+            fprintf(stderr,
+                    "Error: '%s' is out of range. Length should be an integer "
+                    "between 1 and %zu\n",
+                    input_copy, MAX_ROD_LENGTH);
             break;
 
         case READ_ERROR:
-            printf("Error: Could not read rod length from user\n");
+            fprintf(stderr, "Error: Could not read rod length from user\n");
             break;
 
         default:
-            printf("Error: Received error code %d with input %s\n", err,
-                   input_copy);
+            fprintf(stderr, "Error: Received error code %d with input %s\n",
+                    err, input_copy);
     }
 }
-
-// void processInput(const Vec prices, const char* input) {
-//     long length = getIntFromStr(input);
-//     if (isLengthInRange(length)) {
-//         RodCutSolver solver = createRodCutSolver(prices);
-//         solveRodCutting(solver, (int)length);
-//         freeRodCutSolver(solver);
-//         return;
-//     }
-//     printf("Rod length must be a 32-bit integer greater than 0.\n");
-// }

@@ -28,6 +28,8 @@ void* vec_items(Vec v);
 
 void* vec_get(Vec v, size_t index);
 
-KeyPair* findPair(const Vec vector, size_t key);
+// Return Keypair in vec with corresponding key
+// Returns NULL if not found
+KeyPair* vec_find_pair(const Vec vector, size_t key);
 
 #endif

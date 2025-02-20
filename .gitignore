@@ -6,6 +6,5 @@
 .exe
 a.out
 main
-memoize
 node_modules/
 .vscode/

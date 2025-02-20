@@ -6,25 +6,7 @@
 #include "keypair.h"
 #include "vec.h"
 
-// typedef struct rodcutresult {
-//     Vec cut_list;  // Keypair = {length, number of pieces}
-//     int total_profit;
-//     size_t remainder;
-// } *RodCutResult;
-
-RodCutResult createRodCutResult(const Vec cuts, int profit, size_t remainder) {
-    RodCutResult result  = malloc(sizeof(struct rodcutresult));
-    result->cut_list     = vec_copy(cuts);
-    result->total_profit = profit;
-    result->remainder    = remainder;
-    return result;
-}
-
-void freeRodCutResult(RodCutResult result) {
-    if (result)
-        vec_free(result->cut_list);
-    free(result);
-}
+const size_t MAX_OUTPUT_LENGTH = 256;
 
 Vec createCutList(size_t rod_length, const size_t cuts[]) {
     Vec cut_list        = new_vec(sizeof(KeyPair));
@@ -35,7 +17,7 @@ Vec createCutList(size_t rod_length, const size_t cuts[]) {
         const size_t cut = cuts[temp_length];
 
         if (cut > 0) {
-            KeyPair* pair = findPair(cut_list, cut);
+            KeyPair* pair = vec_find_pair(cut_list, cut);
             if (pair != NULL) {
                 pair->value++;
             } else {
@@ -60,7 +42,7 @@ size_t calculateRemainder(const Vec cuts, size_t rod_length) {
     return temp_length;
 }
 
-RodCutResult solveRodCutting(const Vec length_prices, size_t rod_length) {
+char* solveRodCutting(const Vec length_prices, size_t rod_length) {
     const size_t arr_size = rod_length + 1;
     int prices[arr_size];
     int max_profit[arr_size];
@@ -99,25 +81,42 @@ RodCutResult solveRodCutting(const Vec length_prices, size_t rod_length) {
     const int profit       = max_profit[rod_length];
     const size_t remainder = calculateRemainder(cut_list, rod_length);
 
-    return createRodCutResult(cut_list, profit, remainder);
+    char* output = getOutputStr(length_prices, cut_list, profit, remainder);
+    
+    vec_free(cut_list);
+    return output;
 }
 
-void printResult(const RodCutResult result, const Vec length_prices) {
+char* getOutputStr(const Vec length_prices, const Vec cut_list, int profit,
+                   size_t remainder) {
+    char* output  = (char*)malloc(MAX_OUTPUT_LENGTH);
+    size_t offset = 0;  // Keeps track of end of string
+
+    output[0]     = '\0';
+
     // Get each KeyPair in the cut_list vector and print it
-    for (size_t ix = 0; ix < vec_length(result->cut_list); ix++) {
-        const KeyPair* cut        = vec_get(result->cut_list, ix);
+    for (size_t ix = 0; ix < vec_length(cut_list); ix++) {
+        const KeyPair* cut        = vec_get(cut_list, ix);
 
-        const size_t cut_length   = cut->key;
-        const int cut_count       = cut->value;
+        const size_t length       = cut->key;
+        const int count           = cut->value;
 
-        const KeyPair* price_pair = findPair(length_prices, cut_length);
+        const KeyPair* price_pair = vec_find_pair(length_prices, length);
 
         if (price_pair != NULL) {
-            int cut_price = price_pair->value;
-            printf("%d @ %zu = %d\n", cut_count, cut_length,
-                   cut_count * cut_price);
+            int price = price_pair->value;
+            int chars =
+                snprintf(output + offset, MAX_OUTPUT_LENGTH - offset,
+                         "%d @ %zu = %d\n", count, length, count * price);
+
+            offset += chars;
         }
     }
-    printf("Remainder: %zu\n", result->remainder);
-    printf("Value: %d\n", result->total_profit);
+
+    snprintf(output + offset, MAX_OUTPUT_LENGTH - offset,
+             "Remainder: %zu\n"
+             "Value: %d\n",
+             remainder, profit);
+
+    return output;
 }

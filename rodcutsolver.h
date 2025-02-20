@@ -3,22 +3,18 @@
 
 #include "vec.h"
 
-typedef struct rodcutresult {
-    Vec cut_list;  // Keypair = {length, number of pieces}
-    int total_profit;
-    size_t remainder;
-} *RodCutResult;
-
-RodCutResult createRodCutResult(const Vec cuts, int profit, size_t remainder);
-
-void freeRodCutResult(RodCutResult result);
+extern const size_t MAX_OUTPUT_LENGTH;
 
 Vec createCutList(size_t rod_length, const size_t cuts[]);
 
 size_t calculateRemainder(const Vec cuts, size_t rod_length);
 
-RodCutResult solveRodCutting(const Vec length_prices, size_t rod_length);
+// Solves rodcut problem and returns a string of the results
+// String will need to be freed by the caller
+char* solveRodCutting(const Vec length_prices, size_t rod_length);
 
-void printResult(const RodCutResult result, const Vec length_prices);
+// String is dynamically allocated, so it will need to be freed
+char* getOutputStr(const Vec length_prices, const Vec cut_list, int profit,
+                   size_t remainder);
 
 #endif

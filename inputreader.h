@@ -29,15 +29,18 @@
 extern const size_t MAX_LINE_LENGTH;
 extern const size_t COMMAND_LINE_ARG_SIZE;
 extern const size_t BUFFER_SIZE;
+extern const size_t MAX_ROD_LENGTH;
 
 // Returns error code if failed to read input, or sends exit code if EOF is read
 int getInput(char* write_to);
+
+void clearBuffer();
 
 // Returns error code if argument is invalid
 int validateArgs(int arg_count, char* args[]);
 
 // Returns true if 0 < length < INT_MAX
-bool isLengthInRange(long int length);
+bool isLengthInRange(long length);
 
 // Returns true if file exists and can be accessed
 bool isFileValid(const char* filename);

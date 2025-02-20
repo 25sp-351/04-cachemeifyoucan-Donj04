@@ -1,7 +1,7 @@
 SRCS = $(TARGET).c inputreader.c keypair.c rodcutsolver.c vec.c
 HDRS = inputreader.h keypair.h rodcutsolver.h vec.h
 
-TARGET = rodcut
+TARGET = main
 
 OBJS = $(SRCS:.c=.o)
 
@@ -22,9 +22,6 @@ keypair.o: keypair.c keypair.h
 rodcutsolver.o: rodcutsolver.c rodcutsolver.h
 
 vec.o: vec.c vec.h
-
-run: $(TARGET)
-	./$(TARGET)
 
 clean:
 	rm -f $(TARGET) $(OBJS)
