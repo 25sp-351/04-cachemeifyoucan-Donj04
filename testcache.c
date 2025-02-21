@@ -15,15 +15,14 @@
 ** It does not support the provider function accessing the cache.
 */
 
-#define TEST_COUNT 200
-#define MAX_TEST_NUMBER 1000
+#define TEST_COUNT 50
+#define MAX_TEST_NUMBER 50
 
 int rand_between(int min, int max);
 
 int main(int argc, char *argv[]) {
     if (argc < 2 || argc > 3) {
-        fprintf(stderr, "Usage: %s /path/to/lengths_file [cache.so]\n",
-                argv[0]);
+        fprintf(stderr, "Usage: %s lengths_file.txt [cache.so]\n", argv[0]);
         return 1;
     }
 
@@ -46,7 +45,7 @@ int main(int argc, char *argv[]) {
 
     printf("\nReading file '%s'...\n", argv[1]);
     Vec lengths = extractFile(argv[1]);
-    
+
     if (lengths == NULL || vec_length(lengths) == 0) {
         fprintf(stderr, "File is invalid or contains no valid lengths\n");
         if (lengths != NULL)

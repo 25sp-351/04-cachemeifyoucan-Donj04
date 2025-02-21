@@ -18,9 +18,11 @@ int main(int argc, char* argv[]) {
 
     const char* filename = argv[1];
 
-    printf("Reading lengths from '%s'\n", filename);
+    printf("Reading lengths from '%s'...\n", filename);
 
     const Vec length_prices = extractFile(filename);
+    
+    printf("\n");
 
     if (length_prices == NULL) {
         printErr(FILE_INVALID, filename, COMMAND_LINE_ARG_SIZE);

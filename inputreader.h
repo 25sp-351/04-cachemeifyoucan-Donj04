@@ -6,6 +6,8 @@
 
 #include "vec.h"
 
+#define MAX_ROD_LENGTH 100000
+
 #define ARGS_OK 0
 #define ARG_COUNT_INVALID 1
 
@@ -15,8 +17,6 @@
 #define FILE_LENGTH_OUT_OF_RANGE 4
 #define FILE_LENGTH_DUPE 5
 #define FILE_INVALID_LINE 6
-
-#define INVALID_LENGTH -1
 
 #define INPUT_OK 0
 #define INPUT_NOT_INT 7
@@ -30,7 +30,6 @@
 extern const size_t MAX_LINE_LENGTH;
 extern const size_t COMMAND_LINE_ARG_SIZE;
 extern const size_t BUFFER_SIZE;
-extern const size_t MAX_ROD_LENGTH;
 
 extern const int ARGC_NO_CACHE;
 extern const int ARGC_WITH_CACHE;

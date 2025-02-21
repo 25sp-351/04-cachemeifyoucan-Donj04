@@ -10,7 +10,6 @@
 const size_t MAX_LINE_LENGTH       = 128;
 const size_t COMMAND_LINE_ARG_SIZE = 256;
 const size_t BUFFER_SIZE           = 64;
-const size_t MAX_ROD_LENGTH        = 100000;
 
 const int ARGC_NO_CACHE            = 2;
 const int ARGC_WITH_CACHE          = 3;
@@ -124,7 +123,7 @@ void printErr(int err, const char* input, size_t input_length) {
             break;
 
         case ARG_COUNT_INVALID:
-            fprintf(stderr, "Usage: %s /path/to/lengths_file [cache.so]\n",
+            fprintf(stderr, "Usage: %s lengths_file.txt [cache.so]\n",
                     input_copy);
             break;
 
@@ -154,11 +153,10 @@ void printErr(int err, const char* input, size_t input_length) {
             break;
 
         case FILE_INVALID_LINE:
-            fprintf(
-                stderr,
-                "Warning: line '%s' is invalid. Format should be <int>, <int>. "
-                "Ignoring line...\n",
-                input_copy);
+            fprintf(stderr,
+                    "Warning: line '%s' should be formatted as <int>, <int>. "
+                    "Ignoring line...\n",
+                    input_copy);
             break;
 
         case INPUT_NOT_INT:
@@ -169,8 +167,7 @@ void printErr(int err, const char* input, size_t input_length) {
 
         case INPUT_OUT_OF_RANGE:
             fprintf(stderr,
-                    "Error: '%s' is out of range. Length should be an integer "
-                    "between 1 and %zu\n",
+                    "Error: '%s' should be an integer between 1 and %d\n",
                     input_copy, MAX_ROD_LENGTH);
             break;
 
@@ -179,7 +176,8 @@ void printErr(int err, const char* input, size_t input_length) {
             break;
 
         case CACHE_LOAD_ERR:
-            fprintf(stderr, "Error: Failed to load cache module '%s'\n", input_copy);
+            fprintf(stderr, "Error: Failed to load cache module '%s'\n",
+                    input_copy);
             break;
 
         default:
