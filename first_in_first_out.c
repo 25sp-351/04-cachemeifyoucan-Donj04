@@ -68,12 +68,12 @@ void cleanup(void) {
     for (size_t ix = 0; ix < CACHE_SIZE; ix++)
         if (queue[ix] != NULL) {
             if (show_debug_info)
-                printf(KEY_FMT " ", queue[ix]->key);
+                fprintf(stderr, KEY_FMT " ", queue[ix]->key);
             node_free(queue[ix]);
         }
 
     if (show_debug_info)
-        printf("freed\n");
+        fprintf(stderr, "freed\n");
 }
 
 void reset_statistics(void) {
@@ -99,7 +99,7 @@ CacheStat* statistics(void) {
 }
 
 bool _is_present(KeyType key) {
-    bool present = (key <= MAX_KEY) && (key_map[key] != KEY_NOT_PRESENT);
+    bool present = key <= MAX_KEY && key_map[key] != KEY_NOT_PRESENT;
 
     if (show_debug_info)
         fprintf(stderr, __FILE__ " is_present(" KEY_FMT ") = %s\n", key,

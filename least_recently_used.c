@@ -8,27 +8,28 @@
 
 /* Least recently used */
 
-typedef struct {
+typedef struct mapnode {
     int cache_key;
     // increases for each cache access, resets when this node is accessed
     unsigned int time_since_access;
-} MapNode;
+} * MapNode;
 
 #define MAX_KEY MAX_ROD_LENGTH
-#define CACHE_SIZE 10
+#define CACHE_SIZE 50
 #define MAP_SIZE MAX_KEY + 1
 
 #define VALUE_NOT_PRESENT NULL
-#define KEY_NOT_PRESENT -1
 #define MAX_TIME UINT_MAX
 
 ValueType cache[CACHE_SIZE];
 MapNode key_map[MAP_SIZE];  // maps the real key to an index in the cache, and
                             // keeps track of when it was last accessed
 
-int saved_values     = 0;
+KeyType key_to_replace = 0;  // least recently used key
 
-bool show_debug_info = true;
+int saved_values       = 0;
+
+bool show_debug_info   = true;
 
 int cache_requests;
 int cache_hits;
@@ -36,11 +37,27 @@ int cache_misses;
 
 ProviderFunction _downstream = NULL;
 
-MapNode new_node(int cache_key, unsigned int time) {
-    MapNode node;
-    node.cache_key         = cache_key;
-    node.time_since_access = time;
+MapNode node_new(int cache_key, unsigned int time) {
+    MapNode node            = malloc(sizeof(struct mapnode));
+    node->cache_key         = cache_key;
+    node->time_since_access = time;
     return node;
+}
+
+// make sure the cache entry this points to is also taken care of
+void node_free(KeyType key) {
+    if (key_map[key]) {
+        free(key_map[key]);
+        key_map[key] = NULL;
+    }
+}
+
+// make sure the key pointing to this entry is also taken care of
+void cache_entry_free(size_t idx) {
+    if (cache[idx]) {
+        free(cache[idx]);
+        cache[idx] = NULL;
+    }
 }
 
 void initialize(void) {
@@ -51,20 +68,28 @@ void initialize(void) {
     cache_hits     = 0;
     cache_misses   = 0;
 
-    for (int ix = 0; ix < CACHE_SIZE; ix++)
+    for (size_t ix = 0; ix < CACHE_SIZE; ix++)
         cache[ix] = NULL;
 
-    for (int iy = 0; iy < MAP_SIZE; iy++)
-        key_map[iy] = new_node(KEY_NOT_PRESENT, 0);
+    for (KeyType iy = 0; iy < MAP_SIZE; iy++)
+        key_map[iy] = NULL;
 }
 
 void cleanup(void) {
     if (show_debug_info)
-        fprintf(stderr, __FILE__ " cleanup()\n");
+        fprintf(stderr, __FILE__ " cleanup(): ");
 
     for (size_t ix = 0; ix < CACHE_SIZE; ix++)
-        if (cache[ix] != NULL)
-            free(cache[ix]);
+        cache_entry_free(ix);
+
+    for (KeyType iy = 0; iy < MAP_SIZE; iy++) {
+        if (show_debug_info && key_map[iy] != NULL)
+            fprintf(stderr, KEY_FMT " ", iy);
+        node_free(iy);
+    }
+
+    if (show_debug_info)
+        fprintf(stderr, "freed\n");
 }
 
 void reset_statistics(void) {
@@ -89,46 +114,47 @@ CacheStat* statistics(void) {
     return stats_cache;
 }
 
-// find least recently used
-// greatest time = least recent
-KeyType _earliest_accessed_key() {
-    KeyType key           = 0;
-    unsigned int time_max = 0;
-
-    for (size_t iy = 0; iy < MAP_SIZE; iy++) {
-        MapNode node = key_map[iy];
-
-        if ((node.cache_key != KEY_NOT_PRESENT) &&
-            (node.time_since_access > time_max)) {
-            key      = iy;
-            time_max = node.time_since_access;
-        }
-    }
-    return key;
-}
-
-void _update_times(KeyType ignore) {
-    key_map[ignore].time_since_access = 0;
-
+// also finds the least recently used key
+void _update_times(KeyType reset_key) {
     if (show_debug_info)
         fprintf(stderr, __FILE__ " update_times():\n");
 
-    for (size_t ix = 0; ix < MAP_SIZE; ix++) {
-        if (ix == ignore || key_map[ix].cache_key == KEY_NOT_PRESENT)
+    KeyType new_replace   = 0;
+    unsigned int time_max = 0;
+
+    for (KeyType ix = 0; ix < MAP_SIZE; ix++) {
+        MapNode node = key_map[ix];
+
+        if (node == NULL)
             continue;
 
-        unsigned int old_time = key_map[ix].time_since_access++;
+        unsigned int* time    = &(node->time_since_access);
+        unsigned int old_time = *time;
 
-        fprintf(stderr, KEY_FMT ": %u -> %u\n", ix, old_time,
-                key_map[ix].time_since_access);
+        if (ix == reset_key) {
+            *time = 0;
+            if (show_debug_info)
+                fprintf(stderr, "*");
+        } else {
+            if (*time < MAX_TIME)
+                (*time)++;
+
+            if (*time > time_max) {
+                new_replace = ix;
+                time_max    = *time;
+            }
+            if (show_debug_info)
+                fprintf(stderr, " ");
+        }
+        fprintf(stderr, KEY_FMT ": %u -> %u\n", ix, old_time, *time);
     }
 
-    fprintf(stderr, "reset time for " KEY_FMT "\n\n", ignore);
+    if (new_replace > 0)
+        key_to_replace = new_replace;
 }
 
 bool _is_present(KeyType key) {
-    bool present =
-        (key <= MAX_KEY) && (key_map[key].cache_key != KEY_NOT_PRESENT);
+    bool present = key <= MAX_KEY && key_map[key] != NULL;
 
     if (show_debug_info)
         fprintf(stderr, __FILE__ " is_present(" KEY_FMT ") = %s\n", key,
@@ -147,23 +173,20 @@ void _insert(KeyType key, ValueType value) {
     bool space_available = saved_values < CACHE_SIZE;
 
     int insert_cache_idx = 0;
-    KeyType old_key      = 0;
 
     if (space_available)
         insert_cache_idx = saved_values;  // insert at end of used entries
     else {
-        // find least recently used key, and get the cache index it's mapped to
-        old_key          = _earliest_accessed_key();
-        insert_cache_idx = key_map[old_key].cache_key;
+        // get least recently used key, and get the cache index it's mapped to
+        insert_cache_idx = key_map[key_to_replace]->cache_key;
     }
 
-    if (cache[insert_cache_idx]) {
-        free(cache[insert_cache_idx]);
-
-        key_map[old_key] = new_node(KEY_NOT_PRESENT, 0);
+    cache_entry_free(insert_cache_idx);
+    if (key_to_replace != 0) {
+        node_free(key_to_replace);
 
         if (show_debug_info)
-            fprintf(stderr, ": removed key " KEY_FMT, old_key);
+            fprintf(stderr, ": remove key " KEY_FMT, key_to_replace);
     }
 
     if (show_debug_info)
@@ -171,19 +194,19 @@ void _insert(KeyType key, ValueType value) {
 
     // insert element
     cache[insert_cache_idx] = value;
-    key_map[key]            = new_node(insert_cache_idx, 0);
-
-    _update_times(key);
+    key_map[key]            = node_new(insert_cache_idx, 0);
 
     if (space_available)
         saved_values++;
+
+    _update_times(key);
 }
 
 ValueType _get(KeyType key) {
-    if ((key > MAX_KEY) || (key_map[key].cache_key == KEY_NOT_PRESENT))
+    if (key > MAX_KEY || key_map[key] == NULL)
         return VALUE_NOT_PRESENT;
 
-    int cache_key    = key_map[key].cache_key;
+    int cache_key    = key_map[key]->cache_key;
     ValueType result = cache[cache_key];
 
     _update_times(key);

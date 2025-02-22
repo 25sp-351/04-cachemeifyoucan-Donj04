@@ -27,6 +27,7 @@ run_fifo: $(MAIN) $(FIFO)
 		./$(MAIN) $(FILE) ./$(FIFO); \
 	fi
 
+
 $(MAIN): $(MAIN).o $(OBJS)
 	$(CC) -o $@ $(CFLAGS) $(MAIN).o $(OBJS)
 
