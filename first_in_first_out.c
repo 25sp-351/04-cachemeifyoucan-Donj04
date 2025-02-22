@@ -16,7 +16,7 @@ typedef struct node {
 #define CACHE_SIZE 10
 #define MAP_SIZE MAX_KEY + 1
 
-#define VALUE_NOT_PRESENT 0
+#define VALUE_NOT_PRESENT NULL
 #define KEY_NOT_PRESENT -1
 
 CacheNode queue[CACHE_SIZE];
@@ -56,6 +56,7 @@ void initialize(void) {
 
     for (int ix = 0; ix < CACHE_SIZE; ix++)
         queue[ix] = NULL;
+
     for (int iy = 0; iy < MAP_SIZE; iy++)
         key_map[iy] = KEY_NOT_PRESENT;
 }
@@ -98,7 +99,7 @@ CacheStat* statistics(void) {
 }
 
 bool _is_present(KeyType key) {
-    bool present = key <= MAX_KEY && key_map[key] != KEY_NOT_PRESENT;
+    bool present = (key <= MAX_KEY) && (key_map[key] != KEY_NOT_PRESENT);
 
     if (show_debug_info)
         fprintf(stderr, __FILE__ " is_present(" KEY_FMT ") = %s\n", key,

@@ -2,23 +2,30 @@ MAIN = main
 TESTER = testcache
 
 OBJS = inputreader.o keypair.o rodcutsolver.o vec.o cache.o
-LRU = libmemoize.so
+LRU = libleast_recently_used.so
 FIFO = libfirst_in_first_out.so
 
 CC = gcc
 CFLAGS = -g -Wall -Wextra
 
 
-build: $(MAIN) $(TESTER) $(LRU) $(FIFO)
+all: $(MAIN) $(TESTER) $(LRU) $(FIFO)
 
 
 run_lru: $(MAIN) $(LRU)
-	@./$(MAIN) $(FILE) ./$(LRU) || echo "\nmake command format: make run_lru FILE=\"lengths_file.txt\""
+	@if [ -z "$(FILE)" ]; then \
+		echo "command usage: make run_lru FILE=\"lengths_file.txt\""; \
+	else \
+		./$(MAIN) $(FILE) ./$(LRU); \
+	fi
 
 
 run_fifo: $(MAIN) $(FIFO)
-	@./$(MAIN) $(FILE) ./$(FIFO) || echo "\nmake command format: make run_fifo FILE=\"lengths_file.txt\""
-
+	@if [ -z "$(FILE)" ]; then \
+		echo "command usage: make run_fifo FILE=\"lengths_file.txt\""; \
+	else \
+		./$(MAIN) $(FILE) ./$(FIFO); \
+	fi
 
 $(MAIN): $(MAIN).o $(OBJS)
 	$(CC) -o $@ $(CFLAGS) $(MAIN).o $(OBJS)
