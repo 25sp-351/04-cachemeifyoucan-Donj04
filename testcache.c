@@ -15,8 +15,8 @@
 ** It does not support the provider function accessing the cache.
 */
 
-#define TEST_COUNT 500
-#define MAX_TEST_NUMBER 500
+#define TEST_COUNT 200
+#define MAX_TEST_NUMBER 100
 
 int rand_between(int min, int max);
 
@@ -41,6 +41,7 @@ int main(int argc, char *argv[]) {
         }
         // replace our real provider with a caching provider
         get_me_a_value = cache->set_provider_func(get_me_a_value);
+        *(cache->show_debug_info) = true;
     }
 
     printf("\nReading file '%s'...\n", argv[1]);
@@ -67,10 +68,10 @@ int main(int argc, char *argv[]) {
         printf("Done with test %2d: Rod length %d solution:\n%s", test_number,
                randomnumber, result);
 
-        if (cache != NULL && test_number == TEST_COUNT / 2) {
-            printf("Taking a break. Resetting cache statistics.\n");
-            cache->reset_statistics();
-        }
+        // if (cache != NULL && test_number == TEST_COUNT / 2) {
+        //     printf("Taking a break. Resetting cache statistics.\n");
+        //     cache->reset_statistics();
+        // }
     }
 
     if (cache_installed) {

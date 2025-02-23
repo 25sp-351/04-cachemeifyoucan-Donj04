@@ -89,6 +89,8 @@ typedef struct chooks {
     // function in library to close/delete cache: main() should call once
     // before exiting.
     Void_fptr cache_cleanup;
+
+    bool* show_debug_info;
 } Cache;
 
 

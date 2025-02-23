@@ -23,21 +23,33 @@
 #define INPUT_OUT_OF_RANGE 8
 #define READ_ERROR 9
 
-#define CACHE_LOAD_ERR 10
+#define CACHE_INVALID 10
 
-#define USER_EXIT 11
+#define FLAG_INVALID 11
+
+#define USER_EXIT 12
 
 extern const size_t MAX_LINE_LENGTH;
 extern const size_t COMMAND_LINE_ARG_SIZE;
 extern const size_t BUFFER_SIZE;
 
-extern const int ARGC_NO_CACHE;
-extern const int ARGC_WITH_CACHE;
+extern const int MIN_ARGS;
+extern const int MAX_ARGS;
+
+extern const int FILE_ARG;
+extern const int CACHE_ARG;
+extern const int DEBUG_ARG;
+
+extern const char* DEBUG_FLAG;
 
 // Returns error code if failed to read input, or sends exit code if EOF is read
 int getInput(char* write_to);
 
 void clearBuffer();
+
+bool isArgCountValid(int argc);
+
+bool isFlagValid(const char* flag);
 
 // Returns true if 0 < length < INT_MAX
 bool isLengthInRange(long length);

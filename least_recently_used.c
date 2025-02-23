@@ -29,7 +29,7 @@ KeyType key_to_replace = 0;  // least recently used key
 
 int saved_values       = 0;
 
-bool show_debug_info   = true;
+bool show_debug_info   = false;
 
 int cache_requests;
 int cache_hits;
@@ -134,7 +134,7 @@ void _update_times(KeyType reset_key) {
         if (ix == reset_key) {
             *time = 0;
             if (show_debug_info)
-                fprintf(stderr, "*");
+                fprintf(stderr, "*");  
         } else {
             if (*time < MAX_TIME)
                 (*time)++;
@@ -146,8 +146,11 @@ void _update_times(KeyType reset_key) {
             if (show_debug_info)
                 fprintf(stderr, " ");
         }
-        fprintf(stderr, KEY_FMT ": %u -> %u\n", ix, old_time, *time);
+        if (show_debug_info)
+            fprintf(stderr, KEY_FMT ": %u -> %u\n", ix, old_time, *time);
     }
+    if (show_debug_info)
+        fprintf(stderr, "\n");
 
     if (new_replace > 0)
         key_to_replace = new_replace;
@@ -181,8 +184,8 @@ void _insert(KeyType key, ValueType value) {
         insert_cache_idx = key_map[key_to_replace]->cache_key;
     }
 
-    cache_entry_free(insert_cache_idx);
-    if (key_to_replace != 0) {
+    if (!space_available) {
+        cache_entry_free(insert_cache_idx);
         node_free(key_to_replace);
 
         if (show_debug_info)

@@ -11,8 +11,14 @@ const size_t MAX_LINE_LENGTH       = 128;
 const size_t COMMAND_LINE_ARG_SIZE = 256;
 const size_t BUFFER_SIZE           = 64;
 
-const int ARGC_NO_CACHE            = 2;
-const int ARGC_WITH_CACHE          = 3;
+const int MIN_ARGS                 = 2;
+const int MAX_ARGS                 = 4;
+
+const int FILE_ARG                 = 1;
+const int CACHE_ARG                = 2;
+const int DEBUG_ARG                = 3;
+
+const char* DEBUG_FLAG             = "-d";
 
 int getInput(char* write_to) {
     if (fgets(write_to, BUFFER_SIZE, stdin) != NULL)
@@ -28,6 +34,14 @@ void clearBuffer() {
     char ch = ' ';
     while (ch != '\n' && ch != EOF)
         ch = getchar();
+}
+
+bool isArgCountValid(int argc) {
+    return argc >= MIN_ARGS && argc <= MAX_ARGS;
+}
+
+bool isFlagValid(const char* flag) {
+    return strncmp(flag, DEBUG_FLAG, BUFFER_SIZE) == 0;
 }
 
 bool isLengthInRange(long length) {
@@ -123,7 +137,9 @@ void printErr(int err, const char* input, size_t input_length) {
             break;
 
         case ARG_COUNT_INVALID:
-            fprintf(stderr, "Usage: %s lengths_file.txt [cache.so]\n",
+            fprintf(stderr,
+                    "Usage: %s lengths_file.txt [cache.so] [-d]\n"
+                    "-d: show debug messages\n",
                     input_copy);
             break;
 
@@ -131,6 +147,15 @@ void printErr(int err, const char* input, size_t input_length) {
             fprintf(stderr,
                     "Error: File path '%s' is invalid or does not exist\n",
                     input_copy);
+            break;
+
+        case CACHE_INVALID:
+            fprintf(stderr, "Error: Failed to load cache module '%s'\n",
+                    input_copy);
+            break;
+
+        case FLAG_INVALID:
+            fprintf(stderr, "Error: Unknown flag '%s'\n", input_copy);
             break;
 
         case FILE_NO_VALID_LINES:
@@ -173,11 +198,6 @@ void printErr(int err, const char* input, size_t input_length) {
 
         case READ_ERROR:
             fprintf(stderr, "Error: Could not read rod length from user\n");
-            break;
-
-        case CACHE_LOAD_ERR:
-            fprintf(stderr, "Error: Failed to load cache module '%s'\n",
-                    input_copy);
             break;
 
         default:

@@ -13,16 +13,16 @@ typedef struct node {
 } * CacheNode;
 
 #define MAX_KEY MAX_ROD_LENGTH
-#define CACHE_SIZE 10
+#define CACHE_SIZE 50
 #define MAP_SIZE MAX_KEY + 1
 
 #define VALUE_NOT_PRESENT NULL
 #define KEY_NOT_PRESENT -1
 
-CacheNode queue[CACHE_SIZE];
-int key_map[MAP_SIZE];  // maps the real key to an index in the queue
+CacheNode cache[CACHE_SIZE];
+int key_map[MAP_SIZE];  // maps the real key to an index in the cache
 
-size_t q_tail        = 0;  // idx to insert at
+size_t q_tail        = 0;  // queue tail, idx to insert at
 
 bool show_debug_info = false;
 
@@ -31,7 +31,6 @@ int cache_hits;
 int cache_misses;
 
 ProviderFunction _downstream = NULL;
-
 
 CacheNode node_new(KeyType key, ValueType val) {
     CacheNode n_node = malloc(sizeof(struct node));
@@ -55,7 +54,7 @@ void initialize(void) {
     cache_misses   = 0;
 
     for (int ix = 0; ix < CACHE_SIZE; ix++)
-        queue[ix] = NULL;
+        cache[ix] = NULL;
 
     for (int iy = 0; iy < MAP_SIZE; iy++)
         key_map[iy] = KEY_NOT_PRESENT;
@@ -66,10 +65,10 @@ void cleanup(void) {
         fprintf(stderr, __FILE__ " cleanup(): ");
 
     for (size_t ix = 0; ix < CACHE_SIZE; ix++)
-        if (queue[ix] != NULL) {
+        if (cache[ix] != NULL) {
             if (show_debug_info)
-                fprintf(stderr, KEY_FMT " ", queue[ix]->key);
-            node_free(queue[ix]);
+                fprintf(stderr, KEY_FMT " ", cache[ix]->key);
+            node_free(cache[ix]);
         }
 
     if (show_debug_info)
@@ -98,6 +97,25 @@ CacheStat* statistics(void) {
     return stats_cache;
 }
 
+// for debugging
+void print_cache() {
+    fprintf(stderr, __FILE__ " print_cache()\n");
+
+    for (size_t ix = 0; ix < CACHE_SIZE; ix++) {
+        if (cache[ix])
+            fprintf(stderr, KEY_FMT, cache[ix]->key);
+        else if (ix == q_tail)
+            fprintf(stderr, "null");
+
+        if (ix == q_tail)
+            fprintf(stderr, " < tail");
+
+        if (cache[ix] != NULL || ix == q_tail)
+            fprintf(stderr, "\n");
+    }
+    fprintf(stderr, "\n");
+}
+
 bool _is_present(KeyType key) {
     bool present = key <= MAX_KEY && key_map[key] != KEY_NOT_PRESENT;
 
@@ -115,8 +133,8 @@ void _insert(KeyType key, ValueType value) {
     if (show_debug_info)
         fprintf(stderr, __FILE__ " insert(" KEY_FMT ")", key);
 
-    if (queue[q_tail] != NULL) {
-        CacheNode old_node = queue[q_tail];
+    if (cache[q_tail] != NULL) {
+        CacheNode old_node = cache[q_tail];
         KeyType old_key    = old_node->key;
 
         key_map[old_key]   = KEY_NOT_PRESENT;
@@ -129,9 +147,12 @@ void _insert(KeyType key, ValueType value) {
     if (show_debug_info)
         fprintf(stderr, "\n");
 
-    queue[q_tail] = node_new(key, value);
+    cache[q_tail] = node_new(key, value);
     key_map[key]  = q_tail;
     q_tail        = (q_tail + 1) % CACHE_SIZE;
+
+    if (show_debug_info)
+        print_cache();
 }
 
 ValueType _get(KeyType key) {
@@ -139,7 +160,7 @@ ValueType _get(KeyType key) {
         return VALUE_NOT_PRESENT;
 
     size_t map_idx   = key_map[key];
-    ValueType result = queue[map_idx]->value;
+    ValueType result = cache[map_idx]->value;
 
     if (show_debug_info)
         fprintf(stderr, __FILE__ " get(" KEY_FMT "):\n" VALUE_FMT "\n", key,
