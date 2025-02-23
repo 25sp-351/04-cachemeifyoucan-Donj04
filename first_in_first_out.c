@@ -10,7 +10,7 @@
 typedef struct node {
     KeyType key;
     ValueType value;
-} * CacheNode;
+} * FIFOnode;
 
 #define MAX_KEY MAX_ROD_LENGTH
 #define CACHE_SIZE 50
@@ -19,7 +19,7 @@ typedef struct node {
 #define VALUE_NOT_PRESENT NULL
 #define KEY_NOT_PRESENT -1
 
-CacheNode cache[CACHE_SIZE];
+FIFOnode cache[CACHE_SIZE];
 int key_map[MAP_SIZE];  // maps the real key to an index in the cache
 
 size_t q_tail        = 0;  // queue tail, idx to insert at
@@ -32,14 +32,14 @@ int cache_misses;
 
 ProviderFunction _downstream = NULL;
 
-CacheNode node_new(KeyType key, ValueType val) {
-    CacheNode n_node = malloc(sizeof(struct node));
-    n_node->key      = key;
-    n_node->value    = val;
+FIFOnode node_new(KeyType key, ValueType val) {
+    FIFOnode n_node = malloc(sizeof(struct node));
+    n_node->key     = key;
+    n_node->value   = val;
     return n_node;
 }
 
-void node_free(CacheNode c_node) {
+void node_free(FIFOnode c_node) {
     if (c_node->value)
         free(c_node->value);
     free(c_node);
@@ -134,10 +134,10 @@ void _insert(KeyType key, ValueType value) {
         fprintf(stderr, __FILE__ " insert(" KEY_FMT ")", key);
 
     if (cache[q_tail] != NULL) {
-        CacheNode old_node = cache[q_tail];
-        KeyType old_key    = old_node->key;
+        FIFOnode old_node = cache[q_tail];
+        KeyType old_key   = old_node->key;
 
-        key_map[old_key]   = KEY_NOT_PRESENT;
+        key_map[old_key]  = KEY_NOT_PRESENT;
         node_free(old_node);
 
         if (show_debug_info)
