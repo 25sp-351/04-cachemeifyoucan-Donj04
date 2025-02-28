@@ -7,6 +7,6 @@
 .exe
 a.out
 main
-testcache
+tester
 node_modules/
 .vscode/

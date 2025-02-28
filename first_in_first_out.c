@@ -3,7 +3,6 @@
 #include <stdlib.h>
 
 #include "cache.h"
-#include "inputreader.h"
 
 /* First in, first out */
 
@@ -12,25 +11,26 @@ typedef struct node {
     ValueType value;
 } * FIFOnode;
 
-#define MAX_KEY MAX_ROD_LENGTH
+#define MAX_KEY 100000
 #define CACHE_SIZE 50
 #define MAP_SIZE MAX_KEY + 1
 
 #define VALUE_NOT_PRESENT NULL
 #define KEY_NOT_PRESENT -1
 
-FIFOnode cache[CACHE_SIZE];
-int key_map[MAP_SIZE];  // maps the real key to an index in the cache
+FIFOnode cache[CACHE_SIZE];  // circular array acting as a queue
 
-size_t q_tail        = 0;  // queue tail, idx to insert at
+int key_map[MAP_SIZE];  // list of cache indexes
+                        // maps the real key to an index in the cache
 
-bool show_debug_info = false;
+size_t q_tail = 0;  // queue tail, index to insert at
 
 int cache_requests;
 int cache_hits;
 int cache_misses;
 
 ProviderFunction _downstream = NULL;
+
 
 FIFOnode node_new(KeyType key, ValueType val) {
     FIFOnode n_node = malloc(sizeof(struct node));
@@ -39,15 +39,16 @@ FIFOnode node_new(KeyType key, ValueType val) {
     return n_node;
 }
 
+
 void node_free(FIFOnode c_node) {
     if (c_node->value)
         free(c_node->value);
     free(c_node);
 }
 
+
 void initialize(void) {
-    if (show_debug_info)
-        fprintf(stderr, __FILE__ " initialize()\n");
+    DEBUG_PRINT(__FILE__ " initialize()\n");
 
     cache_requests = 0;
     cache_hits     = 0;
@@ -60,32 +61,30 @@ void initialize(void) {
         key_map[iy] = KEY_NOT_PRESENT;
 }
 
+
 void cleanup(void) {
-    if (show_debug_info)
-        fprintf(stderr, __FILE__ " cleanup(): ");
+    DEBUG_PRINT(__FILE__ " cleanup(): ");
 
     for (size_t ix = 0; ix < CACHE_SIZE; ix++)
         if (cache[ix] != NULL) {
-            if (show_debug_info)
-                fprintf(stderr, KEY_FMT " ", cache[ix]->key);
+            DEBUG_PRINT(KEY_FMT " ", cache[ix]->key);
             node_free(cache[ix]);
         }
 
-    if (show_debug_info)
-        fprintf(stderr, "freed\n");
+    DEBUG_PRINT("freed\n");
 }
 
+
 void reset_statistics(void) {
-    if (show_debug_info)
-        fprintf(stderr, __FILE__ " reset_statistics()\n");
+    DEBUG_PRINT(__FILE__ " reset_statistics()\n");
     cache_requests = 0;
     cache_hits     = 0;
     cache_misses   = 0;
 }
 
+
 CacheStat* statistics(void) {
-    if (show_debug_info)
-        fprintf(stderr, __FILE__ " statistics()\n");
+    DEBUG_PRINT(__FILE__ " statistics()\n");
 
     CacheStat* stats_cache = malloc(4 * sizeof(CacheStat));
     stats_cache[0]         = (CacheStat){Cache_requests, cache_requests};
@@ -97,41 +96,44 @@ CacheStat* statistics(void) {
     return stats_cache;
 }
 
-// for debugging
+
+// print every cached key, and show where the tail currently is
 void print_cache() {
-    fprintf(stderr, __FILE__ " print_cache()\n");
+    #ifdef DEBUG
+    DEBUG_PRINT(__FILE__ " print_cache()\n");
 
     for (size_t ix = 0; ix < CACHE_SIZE; ix++) {
         if (cache[ix])
-            fprintf(stderr, KEY_FMT, cache[ix]->key);
+            DEBUG_PRINT(KEY_FMT, cache[ix]->key);
         else if (ix == q_tail)
-            fprintf(stderr, "null");
+            DEBUG_PRINT("null");
 
         if (ix == q_tail)
-            fprintf(stderr, " < tail");
+            DEBUG_PRINT(" < tail");
 
         if (cache[ix] != NULL || ix == q_tail)
-            fprintf(stderr, "\n");
+            DEBUG_PRINT("\n");
     }
-    fprintf(stderr, "\n");
+    DEBUG_PRINT("\n");
+    #endif
 }
+
 
 bool _is_present(KeyType key) {
     bool present = key <= MAX_KEY && key_map[key] != KEY_NOT_PRESENT;
 
-    if (show_debug_info)
-        fprintf(stderr, __FILE__ " is_present(" KEY_FMT ") = %s\n", key,
+    DEBUG_PRINT(__FILE__ " is_present(" KEY_FMT ") = %s\n", key,
                 present ? "true" : "false");
 
     return present;
 }
 
+
 void _insert(KeyType key, ValueType value) {
     if (key > MAX_KEY)
         return;
 
-    if (show_debug_info)
-        fprintf(stderr, __FILE__ " insert(" KEY_FMT ")", key);
+    DEBUG_PRINT(__FILE__ " insert(" KEY_FMT ")", key);
 
     if (cache[q_tail] != NULL) {
         FIFOnode old_node = cache[q_tail];
@@ -140,20 +142,17 @@ void _insert(KeyType key, ValueType value) {
         key_map[old_key]  = KEY_NOT_PRESENT;
         node_free(old_node);
 
-        if (show_debug_info)
-            fprintf(stderr, ": removed key " KEY_FMT, old_key);
+        DEBUG_PRINT(": evict key " KEY_FMT, old_key);
     }
-
-    if (show_debug_info)
-        fprintf(stderr, "\n");
+    DEBUG_PRINT("\n");
 
     cache[q_tail] = node_new(key, value);
     key_map[key]  = q_tail;
     q_tail        = (q_tail + 1) % CACHE_SIZE;
 
-    if (show_debug_info)
-        print_cache();
+    print_cache();  // for debugging
 }
+
 
 ValueType _get(KeyType key) {
     if (key > MAX_KEY || key_map[key] == KEY_NOT_PRESENT)
@@ -162,11 +161,10 @@ ValueType _get(KeyType key) {
     size_t map_idx   = key_map[key];
     ValueType result = cache[map_idx]->value;
 
-    if (show_debug_info)
-        fprintf(stderr, __FILE__ " get(" KEY_FMT "):\n" VALUE_FMT "\n", key,
-                result);
+    DEBUG_PRINT(__FILE__ " get(" KEY_FMT ")\n", key);
     return result;
 }
+
 
 // used externally but not referenced externally --
 // only by the set_provider function
@@ -186,8 +184,7 @@ ValueType _caching_provider(Vec lengths, KeyType key) {
 }
 
 ProviderFunction set_provider(ProviderFunction downstream) {
-    if (show_debug_info)
-        fprintf(stderr, __FILE__ " set_provider()\n");
+    DEBUG_PRINT(__FILE__ " set_provider()\n");
     _downstream = downstream;
     return _caching_provider;
 }

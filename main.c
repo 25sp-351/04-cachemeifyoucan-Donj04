@@ -8,8 +8,9 @@
 #include "inputreader.h"
 #include "rodcutsolver.h"
 
-void processLengths(bool cache_installed, ProviderFunction provider,
-                    Vec length_prices);
+
+void processLengths(ProviderFunction provider, Vec length_prices);
+
 
 int main(int argc, char* argv[]) {
     if (!isArgCountValid(argc)) {
@@ -17,21 +18,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    const char* filename     = argv[FILE_ARG];
-    const char* cache_module = argv[CACHE_ARG];
-    const char* debug_flag   = argv[DEBUG_ARG];
-    bool debug_on            = false;
-
-    // TODO: seperate into functions maybe
-
-    bool has_flag = argc > DEBUG_ARG;
-    if (has_flag) {
-        if (!isFlagValid(debug_flag)) {
-            printErr(FLAG_INVALID, debug_flag, BUFFER_SIZE);
-            return 1;
-        }
-        debug_on = true;
-    }
+    const char* filename      = argv[FILE_ARG];
+    const char* cache_module  = argv[CACHE_ARG];
 
     ProviderFunction provider = solveRodCutting;
 
@@ -46,8 +34,7 @@ int main(int argc, char* argv[]) {
             return 1;
         }
 
-        provider               = cache->set_provider_func(provider);
-        *(cache->show_debug_info) = debug_on;
+        provider = cache->set_provider_func(provider);
 
         printf("Cache loaded\n\n");
     }
@@ -68,39 +55,27 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    processLengths(cache_installed, provider, length_prices);
+    processLengths(provider, length_prices);
 
-    if (cache_installed && debug_on) {
-        printf("\n\n");
-
-        CacheStat* list_of_stats = cache->get_statistics();
-        print_cache_stats(fileno(stdout), list_of_stats);
-
-        if (list_of_stats)
-            free(list_of_stats);
-
-        printf("\n\n");
-
+    if (cache != NULL) {
         cache->cache_cleanup();
         free(cache);
     }
 
     vec_free(length_prices);
+    printf("\n");  // Move command line to a new line after all outputs
     return 0;
 }
 
-void processLengths(bool cache_installed, ProviderFunction provider,
-                    Vec length_prices) {
+void processLengths(ProviderFunction provider, Vec length_prices) {
     while (true) {
-        printf("Enter a rod length (EOF to exit): ");
+        printf("\nEnter a rod length (EOF to exit): ");
 
         char buffer[BUFFER_SIZE];
         int input_state = getInput(buffer);
 
-        if (input_state == USER_EXIT) {
-            printf("\n");
+        if (input_state == USER_EXIT)
             return;
-        }
 
         if (input_state == INPUT_OK) {
             long rod_length;
@@ -112,8 +87,6 @@ void processLengths(bool cache_installed, ProviderFunction provider,
             } else {
                 char* results = provider(length_prices, (size_t)rod_length);
                 printf("%s", results);
-                if (!cache_installed)
-                    free(results);
             }
 
         } else {

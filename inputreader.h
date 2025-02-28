@@ -38,18 +38,20 @@ extern const int MAX_ARGS;
 
 extern const int FILE_ARG;
 extern const int CACHE_ARG;
-extern const int DEBUG_ARG;
 
-extern const char* DEBUG_FLAG;
 
-// Returns error code if failed to read input, or sends exit code if EOF is read
+// Returns a success code if successfully wrote input,
+// returns an error code if failed,
+// or returns an exit code if EOF is read
 int getInput(char* write_to);
 
+// Clear the buffer in stdin
+// This prevents a bug where user inputs longer than BUFFER_SIZE will cause the
+// input loop to execute multiple times automatically
 void clearBuffer();
 
+// Returns true if there are not too few or too many arguments
 bool isArgCountValid(int argc);
-
-bool isFlagValid(const char* flag);
 
 // Returns true if 0 < length < INT_MAX
 bool isLengthInRange(long length);
@@ -58,21 +60,18 @@ bool isLengthInRange(long length);
 bool isFileValid(const char* filename);
 
 // Reads each line from a file and returns a vector of length value pairs
+// Returns NULL if file cannot be read
 Vec extractFile(const char* filename);
 
-// Add length and value to vector, return error code if failed
-int writeLineToVec(const char* line, Vec add_to);
-
-// Returns true if line is only whitespace or is a comment (begins with '#')
-bool isBlankLine(const char* line, size_t length);
-
-// Write input string as int to write_to, return error code if failed or num is
-// out of range
+// Write input string as a long int to write_to
+// Returns error code if failed or num is out of range
 int writeInputToInt(const char* input, long* write_to);
 
-// Copies text without newline into write_to
-void trimNewline(const char* text, char* write_to, size_t length);
+// Writes a copy of a string without a newline into write_to
+void copyWithoutNewline(const char* from, char* write_to, size_t length);
 
-void printErr(int err, const char* input, size_t input_length);
+// Prints an error message given the error code, the input causing the error,
+// and the max length of the input
+void printErr(int err, const char* input, size_t max_length);
 
 #endif

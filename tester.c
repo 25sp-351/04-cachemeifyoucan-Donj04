@@ -15,10 +15,12 @@
 ** It does not support the provider function accessing the cache.
 */
 
-#define TEST_COUNT 200
+#define TEST_COUNT 100
 #define MAX_TEST_NUMBER 100
 
+
 int rand_between(int min, int max);
+
 
 int main(int argc, char *argv[]) {
     if (argc < 2 || argc > 3) {
@@ -41,7 +43,6 @@ int main(int argc, char *argv[]) {
         }
         // replace our real provider with a caching provider
         get_me_a_value = cache->set_provider_func(get_me_a_value);
-        *(cache->show_debug_info) = true;
     }
 
     printf("\nReading file '%s'...\n", argv[1]);
@@ -54,18 +55,24 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    // do yo tests using test_me like:
+    // get a random key, and get the value associated with it
+    // then get the value a second time to test if cached correctly
     for (int test_number = 0; test_number < TEST_COUNT; test_number++) {
         int randomnumber = rand_between(1, MAX_TEST_NUMBER);
 
-        printf(
-            "\n========================\n"
-            "\nBeginning test %2d: %d\n",
-            test_number, randomnumber);
+        printf("\n=================================\n");
+        printf("\nBeginning test %2d-1: %d\n", test_number, randomnumber);
 
-        char *result = get_me_a_value(lengths, randomnumber);
+        ValueType result = get_me_a_value(lengths, randomnumber);
 
-        printf("Done with test %2d: Rod length %d solution:\n%s", test_number,
+        printf("Done with test %2d-1: Rod length %d solution:\n%s", test_number,
+               randomnumber, result);
+
+        printf("\nBeginning test %2d-2: %d\n", test_number, randomnumber);
+
+        result = get_me_a_value(lengths, randomnumber);
+
+        printf("Done with test %2d-2: Rod length %d solution:\n%s", test_number,
                randomnumber, result);
 
         // if (cache != NULL && test_number == TEST_COUNT / 2) {

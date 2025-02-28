@@ -6,6 +6,11 @@
 
 #include "vec.h"
 
+#ifdef DEBUG
+#define DEBUG_PRINT(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+#define DEBUG_PRINT(fmt, ...)
+#endif
 
 // Cache key and value types.
 // Changeable, but examine how they're used
@@ -23,7 +28,7 @@ typedef char* ValueType;
 // This is the type of the function you want to cache
 // (if this is not what you want to cache, you're going to
 // need more significant changes.)
-typedef ValueType (*ProviderFunction)(Vec lengths, KeyType key);
+typedef ValueType (*ProviderFunction)(Vec list, KeyType key);
 
 
 
@@ -89,8 +94,6 @@ typedef struct chooks {
     // function in library to close/delete cache: main() should call once
     // before exiting.
     Void_fptr cache_cleanup;
-
-    bool* show_debug_info;
 } Cache;
 
 

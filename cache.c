@@ -25,7 +25,6 @@ Cache *load_cache_module(const char *libname) {
     hooks->get_statistics    = (Stats_fptr)dlsym(handle, "statistics");
     hooks->reset_statistics  = (Void_fptr)dlsym(handle, "reset_statistics");
     hooks->cache_cleanup     = (Void_fptr)dlsym(handle, "cleanup");
-    hooks->show_debug_info   = (bool *)dlsym(handle, "show_debug_info");
 
     dlclose(handle);
 

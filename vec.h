@@ -12,6 +12,7 @@ typedef struct vec {
     size_t length;
 } *Vec;
 
+
 Vec new_vec(size_t element_size);
 
 Vec vec_copy(Vec v);
